@@ -5,13 +5,20 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
+
 	"github.com/wnvd/pokedexcli/internal/pokedexAPI"
+	"github.com/wnvd/pokedexcli/internal/pokedexCache"
+)
+
+const (
+	INTERVAL = 30 * time.Second
 )
 
 type cliCommand struct {
 	name			string
 	description		string
-	callback		func(c *pokedexapi.Config) error
+	callback		func(cfg *pokedexapi.Config, cache *pokedexCache.Cache) error
 }
 
 func getcommands() map[string]cliCommand {
@@ -46,6 +53,7 @@ func startRepl() {
 		Next: "https://pokeapi.co/api/v2/location-area/",
 		Previous: "",
 	}
+	cachePtr := pokedexCache.NewCache(INTERVAL)
 
 	for {
 		fmt.Print("Pokedex > ")
@@ -59,7 +67,7 @@ func startRepl() {
 				fmt.Println("Unknown command")
 				continue
 			}
-			command.callback(&navigationURLs)
+			command.callback(&navigationURLs, cachePtr)
 		}
 	}
 
@@ -71,14 +79,14 @@ func cleanInput(text string) []string {
 	return strings.Split(text, " ")
 }
 
-func closeRepl(c *pokedexapi.Config) error {
+func closeRepl(cfg *pokedexapi.Config, cache *pokedexCache.Cache) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
 // creating closure over a map remove cyclic dependency
-func helpRepl(c *pokedexapi.Config) error {
+func helpRepl(c *pokedexapi.Config, cache *pokedexCache.Cache) error {
 	fmt.Println(`Welcome to the Pokedex!
 Usage:`)
 
