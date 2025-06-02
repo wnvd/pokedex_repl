@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"bytes"
 	"github.com/wnvd/pokedexcli/internal/pokedexCache"
+	"math/rand"
 )
 
 const (
@@ -14,7 +15,14 @@ const (
 	POKEMON  = "https://pokeapi.co/api/v2/pokemon/"
 )
 
-func ShowNextMap(c *Config, cache *pokedexCache.Cache, param string) error {
+/*
+ *
+ * Map navigation
+ *
+ *
+*/
+
+func ShowNextMap(c *Config, cache *pokedexCache.Cache, pokedex *Pokedex, param string) error {
 	url := BASE_URL
 	if len(c.Next) > 0 {
 		url = c.Next
@@ -51,7 +59,7 @@ func ShowNextMap(c *Config, cache *pokedexCache.Cache, param string) error {
 	return nil
 }
 
-func ShowPreviousMap(c *Config, cache *pokedexCache.Cache, param string) error {
+func ShowPreviousMap(c *Config, cache *pokedexCache.Cache, pokedex *Pokedex, param string) error {
 	if len(c.Previous) == 0 {
 		fmt.Println("No previous locations available, try command map")
 		return nil
@@ -106,7 +114,14 @@ func mapRequestHandler(c *Config, result io.Reader) {
 	fmt.Println()
 }
 
-func ExploreMap(c *Config, cache *pokedexCache.Cache, param string) error {
+/*
+ *
+ * Location area exploration
+ *
+ *
+*/
+
+func ExploreMap(c *Config, cache *pokedexCache.Cache, pokedex *Pokedex, param string) error {
 	url := fmt.Sprint(BASE_URL, param)
 	cachedData, present := cache.Get(url)
 	if present {
@@ -114,7 +129,7 @@ func ExploreMap(c *Config, cache *pokedexCache.Cache, param string) error {
 		fmt.Println("Cache Used:")
 		fmt.Println("------------")
 		fmt.Println()
-		pokemonRequestHandler(bytes.NewReader(cachedData))
+		listPokemonHandler(bytes.NewReader(cachedData))
 		return nil
 	}
 
@@ -135,12 +150,12 @@ func ExploreMap(c *Config, cache *pokedexCache.Cache, param string) error {
 	}
 
 	cache.Add(url, payload)
-	pokemonRequestHandler(bytes.NewReader(payload))
+	listPokemonHandler(bytes.NewReader(payload))
 
 	return nil
 }
 
-func pokemonRequestHandler(result io.Reader) {
+func listPokemonHandler(result io.Reader) {
 	decoder := json.NewDecoder(result)
 	var pokemonsInCity CityPokemon
 	if err := decoder.Decode(&pokemonsInCity); err != nil {
@@ -150,6 +165,70 @@ func pokemonRequestHandler(result io.Reader) {
 
 	for _, pokemonEnounter := range pokemonsInCity.PokemonEncounters {
 		fmt.Println(pokemonEnounter.Pokemon.Name)
+	}
+
+	fmt.Println()
+}
+
+/*
+ *
+ * Catching Pokemon
+ *
+ *
+*/
+func CatchPokemon(c *Config, cache *pokedexCache.Cache, pokedex *Pokedex, pokemon string) error { 
+	fmt.Printf("Throwing a Pokeball at %s...", pokemon)
+	fmt.Println()
+	url := fmt.Sprint(POKEMON, pokemon)
+	cachedData, present := cache.Get(url)
+	if present {
+		fmt.Println("------------")
+		fmt.Println("Cached Data:")
+		fmt.Println("------------")
+		fmt.Println()
+		pokemonCatchHandler(bytes.NewReader(cachedData), pokedex)
+		return nil
+	}
+
+	fmt.Println("--------------")
+	fmt.Println("Server Request:")
+	fmt.Println("--------------")
+	fmt.Println()
+	res, err := http.Get(url)
+	if err != nil {
+		fmt.Printf("Unable to catch %s, make sure you spelled it correctly or try a different Pokemon", pokemon)
+		return nil
+	}
+	defer res.Body.Close()
+
+	payload, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println("Unable to read the data from the stream")
+	}
+
+	cache.Add(url, payload)
+	pokemonCatchHandler(bytes.NewReader(payload), pokedex)
+
+	return nil
+}
+
+func pokemonCatchHandler(result io.Reader, pokedex *Pokedex) {
+	decoder := json.NewDecoder(result)
+	var pokemonStat PokemonStat
+	if err := decoder.Decode(&pokemonStat); err != nil {
+		fmt.Println("Unable to decode JSON payload, Please check pokemon name")
+		return
+	}
+
+	pokedex.SeenPokemon[pokemonStat.Name] = Pokemon{
+		Name: pokemonStat.Name,
+		URL: fmt.Sprint(POKEMON, pokemonStat.Name),
+	}
+
+	if pokemonStat.BaseExperience < rand.Intn(150) {
+		fmt.Printf("%s caught!", pokemonStat.Name)
+	} else {
+		fmt.Printf("%s escaped!", pokemonStat.Name)
 	}
 
 	fmt.Println()

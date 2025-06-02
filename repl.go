@@ -18,7 +18,7 @@ const (
 type cliCommand struct {
 	name			string
 	description		string
-	callback		func(cfg *pokedexapi.Config, cache *pokedexCache.Cache, param string) error
+	callback		func(cfg *pokedexapi.Config, cache *pokedexCache.Cache, pokedex *pokedexapi.Pokedex, param string) error
 }
 
 func getcommands() map[string]cliCommand {
@@ -48,6 +48,11 @@ func getcommands() map[string]cliCommand {
 			description: "Displays details about the location area",
 			callback: pokedexapi.ExploreMap,
 		},
+		"catch": {
+			name: "catch",
+			description: "Catch the pokemon",
+			callback: pokedexapi.CatchPokemon,
+		},
 	}
 }
 
@@ -59,6 +64,9 @@ func startRepl() {
 		Previous: "",
 	}
 	cachePtr := pokedexCache.NewCache(INTERVAL)
+	pokedex := &pokedexapi.Pokedex {
+		SeenPokemon: make(map[string]pokedexapi.Pokemon),
+	}
 
 	for {
 		fmt.Print("Pokedex > ")
@@ -75,7 +83,7 @@ func startRepl() {
 			fmt.Println("Unknown command")
 			continue
 		}
-		command.callback(&navigationURLs, cachePtr, param)
+		command.callback(&navigationURLs, cachePtr, pokedex, param)
 	}
 
 }
@@ -86,14 +94,14 @@ func cleanInput(text string) []string {
 	return strings.Split(text, " ")
 }
 
-func closeRepl(cfg *pokedexapi.Config, cache *pokedexCache.Cache, param string) error {
+func closeRepl(cfg *pokedexapi.Config, cache *pokedexCache.Cache, pokedex *pokedexapi.Pokedex, param string) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
 // creating closure over a map remove cyclic dependency
-func helpRepl(c *pokedexapi.Config, cache *pokedexCache.Cache, param string) error {
+func helpRepl(c *pokedexapi.Config, cache *pokedexCache.Cache, pokedex *pokedexapi.Pokedex, param string) error {
 	fmt.Println(`Welcome to the Pokedex!
 Usage:`)
 
