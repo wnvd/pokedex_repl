@@ -16,3 +16,16 @@ type PokedexPayLoad struct {
 	Previous	string		`json:"previous"`
 	Results		[]Location	`json:"results"`
 }
+
+type Pokemon struct {
+	Name	string	`json:"name"`
+	URL		string	`json:"url"`
+}
+
+type PokemonEncounters struct {
+	Pokemon		Pokemon		`json:"pokemon"`
+}
+
+type CityPokemon struct {
+	PokemonEncounters	[]PokemonEncounters  `json:"pokemon_encounters,omitempty"`
+}

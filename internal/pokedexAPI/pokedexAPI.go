@@ -9,14 +9,18 @@ import (
 	"github.com/wnvd/pokedexcli/internal/pokedexCache"
 )
 
-func ShowNextMap(c *Config, cache *pokedexCache.Cache) error {
-	cachedData, present := cache.Get(c.Next)
+func ShowNextMap(c *Config, cache *pokedexCache.Cache, param string) error {
+	url := "https://pokeapi.co/api/v2/location-area/"
+	if len(c.Next) > 0 {
+		url = c.Next
+	} 	
+	cachedData, present := cache.Get(url)
 	if present {
 		fmt.Println("------------")
 		fmt.Println("Cache Used:")
 		fmt.Println("------------")
 		fmt.Println()
-		requestHandler(c, bytes.NewReader(cachedData))
+		mapRequestHandler(c, bytes.NewReader(cachedData))
 		return nil
 	}
 	
@@ -24,9 +28,9 @@ func ShowNextMap(c *Config, cache *pokedexCache.Cache) error {
 	fmt.Println("Server Request")
 	fmt.Println("--------------")
 	fmt.Println()
-	res , err := http.Get(c.Next)
+	res , err := http.Get(url)
 	if err != nil {
-		fmt.Println("Unable to make GET request to the Pokedex API, Try again")
+		fmt.Println("Unable to make GET request to the Pokedex API")
 		return nil
 	}
 	defer res.Body.Close()
@@ -37,12 +41,12 @@ func ShowNextMap(c *Config, cache *pokedexCache.Cache) error {
 	}
 
 	cache.Add(c.Next, payLoad)
-	requestHandler(c, bytes.NewReader(payLoad))
+	mapRequestHandler(c, bytes.NewReader(payLoad))
 
 	return nil
 }
 
-func ShowPreviousMap(c *Config, cache *pokedexCache.Cache) error {
+func ShowPreviousMap(c *Config, cache *pokedexCache.Cache, param string) error {
 	if len(c.Previous) == 0 {
 		fmt.Println("No previous locations available, try command map")
 		return nil
@@ -54,7 +58,7 @@ func ShowPreviousMap(c *Config, cache *pokedexCache.Cache) error {
 		fmt.Println("Cache Used:")
 		fmt.Println("------------")
 		fmt.Println()
-		requestHandler(c, bytes.NewReader(cachedData))
+		mapRequestHandler(c, bytes.NewReader(cachedData))
 		return nil
 	}
 
@@ -64,7 +68,7 @@ func ShowPreviousMap(c *Config, cache *pokedexCache.Cache) error {
 	fmt.Println()
 	res, err := http.Get(c.Previous)
 	if err != nil {
-		fmt.Println("Unable to make GET request to the Pokedex API, Try again")
+		fmt.Println("Unable to make GET request to the Pokedex API")
 		return nil
 	}
 	defer res.Body.Close()
@@ -75,14 +79,14 @@ func ShowPreviousMap(c *Config, cache *pokedexCache.Cache) error {
 	}
 
 	cache.Add(c.Next, payload)
-	requestHandler(c, bytes.NewReader(payload))
+	mapRequestHandler(c, bytes.NewReader(payload))
 
 	return nil
 }
 
-func requestHandler(c *Config, result io.Reader) {
+func mapRequestHandler(c *Config, result io.Reader) {
 	decoder := json.NewDecoder(result)
-	var pokedexPayLoad PokedexPayLoad
+	var pokedexPayLoad PokedexPayLoad // pass this type as well
 	if err := decoder.Decode(&pokedexPayLoad); err != nil {
 		fmt.Println("Unable to decode JSON")
 	}
@@ -93,6 +97,54 @@ func requestHandler(c *Config, result io.Reader) {
 
 	c.Next = pokedexPayLoad.Next
 	c.Previous = pokedexPayLoad.Previous
+
+	fmt.Println()
+}
+
+func ExploreMap(c *Config, cache *pokedexCache.Cache, param string) error {
+	url := fmt.Sprint("https://pokeapi.co/api/v2/location-area/", param)
+	cachedData, present := cache.Get(url)
+	if present {
+		fmt.Println("------------")
+		fmt.Println("Cache Used:")
+		fmt.Println("------------")
+		fmt.Println()
+		pokemonRequestHandler(bytes.NewReader(cachedData))
+		return nil
+	}
+
+	fmt.Println("--------------")
+	fmt.Println("Server Request:")
+	fmt.Println("--------------")
+	fmt.Println()
+	res, err := http.Get(url)
+	if err != nil {
+		fmt.Println("Unable to make GET request to the Pokedex API")
+		return nil
+	}
+	defer res.Body.Close()
+
+	payload, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println("Unable to read the data from the stream")
+	}
+
+	cache.Add(url, payload)
+	pokemonRequestHandler(bytes.NewReader(payload))
+
+	return nil
+}
+
+func pokemonRequestHandler(result io.Reader) {
+	decoder := json.NewDecoder(result)
+	var pokemonsInCity CityPokemon
+	if err := decoder.Decode(&pokemonsInCity); err != nil {
+		fmt.Println("Unable to decode JSON")
+	}
+
+	for _, pokemonEnounter := range pokemonsInCity.PokemonEncounters {
+		fmt.Println(pokemonEnounter.Pokemon.Name)
+	}
 
 	fmt.Println()
 }

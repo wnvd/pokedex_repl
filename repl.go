@@ -18,7 +18,7 @@ const (
 type cliCommand struct {
 	name			string
 	description		string
-	callback		func(cfg *pokedexapi.Config, cache *pokedexCache.Cache) error
+	callback		func(cfg *pokedexapi.Config, cache *pokedexCache.Cache, param string) error
 }
 
 func getcommands() map[string]cliCommand {
@@ -43,6 +43,11 @@ func getcommands() map[string]cliCommand {
 			description: "Displays the previous locations areas",
 			callback: pokedexapi.ShowPreviousMap,
 		},
+		"explore": {
+			name: "explore",
+			description: "Displays details about the location area",
+			callback: pokedexapi.ExploreMap,
+		},
 	}
 }
 
@@ -50,7 +55,7 @@ func startRepl() {
 
 	userInput := bufio.NewScanner(os.Stdin)
 	navigationURLs := pokedexapi.Config {
-		Next: "https://pokeapi.co/api/v2/location-area/",
+		Next: "",
 		Previous: "",
 	}
 	cachePtr := pokedexCache.NewCache(INTERVAL)
@@ -60,15 +65,17 @@ func startRepl() {
 		userInput.Scan()
 		userText := cleanInput(string(userInput.Text()))
 
-		if len(userText) == 1 {
-			param := userText[0]
-			command, present := getcommands()[param]
-			if !present {
-				fmt.Println("Unknown command")
-				continue
-			}
-			command.callback(&navigationURLs, cachePtr)
+		cmd := userText[0]
+		param := ""
+		if len(userText) > 1 {
+			param = userText[1]
 		}
+		command, present := getcommands()[cmd]
+		if !present {
+			fmt.Println("Unknown command")
+			continue
+		}
+		command.callback(&navigationURLs, cachePtr, param)
 	}
 
 }
@@ -79,14 +86,14 @@ func cleanInput(text string) []string {
 	return strings.Split(text, " ")
 }
 
-func closeRepl(cfg *pokedexapi.Config, cache *pokedexCache.Cache) error {
+func closeRepl(cfg *pokedexapi.Config, cache *pokedexCache.Cache, param string) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
 // creating closure over a map remove cyclic dependency
-func helpRepl(c *pokedexapi.Config, cache *pokedexCache.Cache) error {
+func helpRepl(c *pokedexapi.Config, cache *pokedexCache.Cache, param string) error {
 	fmt.Println(`Welcome to the Pokedex!
 Usage:`)
 
