@@ -9,8 +9,13 @@ import (
 	"github.com/wnvd/pokedexcli/internal/pokedexCache"
 )
 
+const (
+	BASE_URL = "https://pokeapi.co/api/v2/location-area/" 
+	POKEMON  = "https://pokeapi.co/api/v2/pokemon/"
+)
+
 func ShowNextMap(c *Config, cache *pokedexCache.Cache, param string) error {
-	url := "https://pokeapi.co/api/v2/location-area/"
+	url := BASE_URL
 	if len(c.Next) > 0 {
 		url = c.Next
 	} 	
@@ -102,7 +107,7 @@ func mapRequestHandler(c *Config, result io.Reader) {
 }
 
 func ExploreMap(c *Config, cache *pokedexCache.Cache, param string) error {
-	url := fmt.Sprint("https://pokeapi.co/api/v2/location-area/", param)
+	url := fmt.Sprint(BASE_URL, param)
 	cachedData, present := cache.Get(url)
 	if present {
 		fmt.Println("------------")
@@ -139,7 +144,8 @@ func pokemonRequestHandler(result io.Reader) {
 	decoder := json.NewDecoder(result)
 	var pokemonsInCity CityPokemon
 	if err := decoder.Decode(&pokemonsInCity); err != nil {
-		fmt.Println("Unable to decode JSON")
+		fmt.Println("Unable to decode JSON, Please check explore area spelling")
+		return
 	}
 
 	for _, pokemonEnounter := range pokemonsInCity.PokemonEncounters {
