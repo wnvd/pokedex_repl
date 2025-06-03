@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	INTERVAL = 30 * time.Second
+	INTERVAL = 30 * time.Minute
 )
 
 type cliCommand struct {
