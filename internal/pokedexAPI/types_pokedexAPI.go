@@ -41,6 +41,11 @@ type PokemonStat struct {
 			Name	string	`json:"name"`
 		} `json:"stat"`
 	} `json:"stats"`
+	Types []struct {
+		Type struct {
+			Name string `json:"name"`
+		} `json:"type"`
+	} `json:"types"`
 }
 
 type Pokedex struct {

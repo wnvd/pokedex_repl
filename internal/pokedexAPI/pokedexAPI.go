@@ -1,13 +1,13 @@
 package pokedexapi
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
-	"bytes"
-	"github.com/wnvd/pokedexcli/internal/pokedexCache"
 	"math/rand"
+	"net/http"
+	"github.com/wnvd/pokedexcli/internal/pokedexCache"
 )
 
 const (
@@ -232,4 +232,54 @@ func pokemonCatchHandler(result io.Reader, pokedex *Pokedex) {
 	}
 
 	fmt.Println()
+}
+
+/*
+ *
+ * - Inspecting Pokemon
+ * we wil take the URL from the Pokedex
+ * and if that url is in the cache we have already
+ * see that pokemon we can get its stats print and
+ * print to stdout
+ *
+*/
+
+func InspectPokemon(
+	c *Config, 
+	cache *pokedexCache.Cache,
+	pokedex *Pokedex,
+	pokemonName string,
+) error {
+	pokemon, present := pokedex.SeenPokemon[pokemonName]
+	if  !present {
+		fmt.Printf("you have not caught that pokemon")
+		return nil
+	}
+
+	cachedData, present := cache.Get(pokemon.URL)
+	if !present {
+		fmt.Printf("%s is not present in your Pokedex database, cached has been wiped", pokemonName)
+		return nil
+	}
+
+	var pokemonStat PokemonStat
+	decoder := json.NewDecoder(bytes.NewReader(cachedData))
+	if err := decoder.Decode(&pokemonStat); err != nil {
+		fmt.Println("Unable to decode json")
+		return nil
+	}
+
+	fmt.Printf("Name: %s\n", pokemonStat.Name)
+	fmt.Printf("Height: %d\n", pokemonStat.Height)
+	fmt.Printf("Height: %d\n", pokemonStat.Weight)
+	fmt.Println("Stats:")
+	for _, stat := range pokemonStat.Stats {
+		fmt.Printf("\t- %v : %v\n", stat.Stat.Name, stat.BaseStat)
+	}
+	fmt.Println("Type:")
+	for _, pt := range pokemonStat.Types {
+		fmt.Printf("\t- %s\n", pt.Type.Name)
+	}
+
+	return nil
 }
