@@ -283,3 +283,29 @@ func InspectPokemon(
 
 	return nil
 }
+
+/*
+ *
+ * - Command Pokedex
+ * lists pokemons encountered
+ *
+*/
+func ShowPokemonInPokedex(
+	_ *Config, 
+	_ *pokedexCache.Cache,
+	pokedex *Pokedex,
+	_ string,
+) error {
+	if len(pokedex.SeenPokemon) == 0 {
+		fmt.Println("There are not encountered any Pokemons yet.")
+		return nil
+	}
+
+	fmt.Println("Your Pokedex: ")
+	for _, pm := range pokedex.SeenPokemon {
+		fmt.Printf("- %s\n", pm.Name)
+	}
+	fmt.Println()
+
+	return nil
+}
